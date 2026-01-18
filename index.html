@@ -2223,84 +2223,35 @@
         // =============================================
         // GRÁFICO CORRELACIÓN
         // =============================================
-        function createChartCorrelacion() {
-            const ctx = document.getElementById('chartCorrelacion');
-            charts.correlacion = new Chart(ctx, {
-                type: 'scatter',
-                data: {
-                    datasets: [
-                        {
-                            label: 'Hombres',
-                            data: scatterData.hombres,
-                            backgroundColor: 'rgba(59, 130, 246, 0.6)',
-                            borderColor: '#3b82f6',
-                            pointRadius: 5,
-                            pointHoverRadius: 8
-                        },
-                        {
-                            label: 'Mujeres',
-                            data: scatterData.mujeres,
-                            backgroundColor: 'rgba(236, 72, 153, 0.6)',
-                            borderColor: '#ec4899',
-                            pointRadius: 5,
-                            pointHoverRadius: 8
-                        }
-                    ]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: { position: 'top' },
-                        tooltip: {
-                            callbacks: {
-                                label: function(ctx) {
-                                    const d = ctx.raw;
-                                    return [
-                                        d.dept + ' (' + d.prov + ')',
-                                        'Año: ' + d.año,
-                                        'Mortalidad: ' + d.x.toFixed(1) + ' por 100.000',
-                                        'Esperanza Vida: ' + d.y.toFixed(1) + ' años'
-                                    ];
-                                }
-                            }
-                        }
-                    },
-                    scales: {
-                        x: { title: { display: true, text: 'Tasa de Mortalidad (por 100.000)' }, min: 450, max: 1400 },
-                        y: { title: { display: true, text: 'Esperanza de Vida a los 65 (años)' }, min: 16, max: 28 }
-                    }
-                }
-            });
-        }
-
         function updateCorrelacionChart() {
-            const sexo = document.getElementById('selectCorrelacion').value;
-            const año = document.getElementById('selectAnoCorrelacion').value;
-            const prov = document.getElementById('selectProvCorrelacion').value;
-            
-            // Función de filtrado
-            const filtrar = (data) => {
-                return data.filter(d => {
-                    const pasaAño = año === 'todos' || d.año === parseInt(año);
-                    const pasaProv = prov === 'todas' || d.prov === prov;
-                    return pasaAño && pasaProv;
-                });
-            };
-            
-            // Aplicar filtros a los datos
-            charts.correlacion.data.datasets[0].data = filtrar(scatterData.hombres);
-            charts.correlacion.data.datasets[1].data = filtrar(scatterData.mujeres);
-            
-            // Mostrar/ocultar según sexo
-            charts.correlacion.data.datasets.forEach((ds, i) => {
-                if (sexo === 'todos') ds.hidden = false;
-                else if (sexo === 'hombres') ds.hidden = i !== 0;
-                else if (sexo === 'mujeres') ds.hidden = i !== 1;
-            });
-            
-            charts.correlacion.update();
-        }
+  if (!charts.correlacion) return;
+
+  const sexo = document.getElementById('selectCorrelacion').value;
+  const añoSel = document.getElementById('selectAnoCorrelacion').value;
+  const provSel = document.getElementById('selectProvCorrelacion').value;
+
+  const filtrar = (data) => {
+    return data.filter(d => {
+      const pasaAño = (añoSel === 'todos') || (d.año === parseInt(añoSel, 10));
+      const pasaProv = (provSel === 'todas') || (d.prov === provSel);
+      return pasaAño && pasaProv;
+    });
+  };
+
+  // Aplico filtros a ambos conjuntos
+  charts.correlacion.data.datasets[0].data = filtrar(scatterData.hombres);
+  charts.correlacion.data.datasets[1].data = filtrar(scatterData.mujeres);
+
+  // Muestro/oculto según sexo
+  charts.correlacion.data.datasets.forEach((ds, i) => {
+    if (sexo === 'todos') ds.hidden = false;
+    else if (sexo === 'hombres') ds.hidden = i !== 0;
+    else if (sexo === 'mujeres') ds.hidden = i !== 1;
+  });
+
+  charts.correlacion.update();
+}
+
 
         // =============================================
         // INICIALIZACIÓN
