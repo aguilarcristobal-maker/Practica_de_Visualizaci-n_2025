@@ -3,8 +3,8 @@
 ## Proyecto de Visualización de Datos
 
 **Autor:** Cristóbal Eduardo Aguilar Gallardo  
-**Fecha:** Enero 2025  
-**Asignatura:** Visualización de Datos - Práctica 2
+**Fecha:** Enero 2026
+**Asignatura:** Visualización de Datos - Práctica 2da. parte
 
 ---
 
