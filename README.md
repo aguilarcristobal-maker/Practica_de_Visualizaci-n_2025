@@ -138,11 +138,6 @@ Abrir `dashboard/index.html` en un navegador o acceder al enlace publicado.
 
 ---
 
-##  Vídeo de Presentación
-
-[Enlace al vídeo] - Duración: 6-8 minutos
-
----
 
 ##  Dashboard Interactivo
 
@@ -166,5 +161,4 @@ Este proyecto está bajo licencia MIT. Los datos originales son de dominio públ
 ##  Contacto
 
 **Cristóbal Eduardo Aguilar Gallardo**  
-Hospital Universitari i Politècnic La Fe  
-Valencia, España
+
