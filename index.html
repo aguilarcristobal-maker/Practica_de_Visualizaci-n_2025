@@ -552,28 +552,32 @@
 }
 
 function updateCorrelacionChart() {
-    const sexo = document.getElementById('selectCorrelacion').value;
-    const año = document.getElementById('selectAnoCorrelacion').value;
-    const provincia = document.getElementById('selectProvCorrelacion').value;
+  const sexo = document.getElementById("selectCorrelacion").value;
 
-    // Función interna para filtrar
-    const filtrar = (lista) => lista.filter(d => {
-        const matchAño = (año === 'todos') || (d.año === parseInt(año));
-        const matchProv = (provincia === 'todas') || (d.prov === provincia);
-        return matchAño && matchProv;
+  let datasets = [];
+
+  if (sexo === "hombres" || sexo === "todos") {
+    datasets.push({
+      label: "Hombres",
+      data: correlacionSeries.hombres,
+      backgroundColor: "rgba(59,130,246,0.7)",
+      borderColor: "rgba(59,130,246,1)",
+      pointRadius: 5
     });
+  }
 
-    const datosH = (sexo === 'todos' || sexo === 'hombres') ? filtrar(scatterData.hombres) : [];
-    const datosM = (sexo === 'todos' || sexo === 'mujeres') ? filtrar(scatterData.mujeres) : [];
+  if (sexo === "mujeres" || sexo === "todos") {
+    datasets.push({
+      label: "Mujeres",
+      data: correlacionSeries.mujeres,
+      backgroundColor: "rgba(236,72,153,0.7)",
+      borderColor: "rgba(236,72,153,1)",
+      pointRadius: 5
+    });
+  }
 
-    charts.correlacion.data.datasets[0].data = datosH;
-    charts.correlacion.data.datasets[1].data = datosM;
-    
-    // Ocultar el dataset si no hay datos para que no ensucie la leyenda
-    charts.correlacion.data.datasets[0].hidden = datosH.length === 0;
-    charts.correlacion.data.datasets[1].hidden = datosM.length === 0;
-
-    charts.correlacion.update();
+  chartCorrelacion.data.datasets = datasets;
+  chartCorrelacion.update();
 }
         
         document.addEventListener('DOMContentLoaded', function() {
