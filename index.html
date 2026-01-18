@@ -337,10 +337,22 @@
         const covidData = { periodos: ['Pre-COVID', '2020', '2021', 'Post-COVID'], valores: [857.1, 902.6, 907.8, 848.9], variaciones: [0, 5.3, 5.9, -1.0] };
         
         // Scatter data simplificado
-        const scatterData = {
-            hombres: [{x: 1100, y: 18.5, año: 2010, dept: "Promedio", prov: "CV"}, {x: 1050, y: 19.0, año: 2015, dept: "Promedio", prov: "CV"}, {x: 1060, y: 18.8, año: 2020, dept: "Promedio", prov: "CV"}, {x: 955, y: 19.6, año: 2023, dept: "Promedio", prov: "CV"}],
-            mujeres: [{x: 730, y: 22.8, año: 2010, dept: "Promedio", prov: "CV"}, {x: 720, y: 23.1, año: 2015, dept: "Promedio", prov: "CV"}, {x: 770, y: 22.7, año: 2020, dept: "Promedio", prov: "CV"}, {x: 703, y: 23.4, año: 2023, dept: "Promedio", prov: "CV"}]
-        };
+     const scatterData = [];
+
+años.forEach((año, i) => {
+    scatterData.push({
+        sexo: 'hombres',
+        año: año,
+        x: datosTemporales.hombres[i],
+        y: evPorSexo.hombres[i]
+    });
+    scatterData.push({
+        sexo: 'mujeres',
+        año: año,
+        x: datosTemporales.mujeres[i],
+        y: evPorSexo.mujeres[i]
+    });
+});
         
         Chart.defaults.font.family = "'Inter', sans-serif";
         Chart.defaults.color = '#64748b';
