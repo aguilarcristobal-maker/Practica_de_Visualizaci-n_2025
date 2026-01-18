@@ -507,18 +507,62 @@
         function createChartCovidAbsoluto() { charts.covidAbsoluto = new Chart(document.getElementById('chartCovidAbsoluto'), { type: 'bar', data: { labels: covidData.periodos, datasets: [{ data: covidData.valores, backgroundColor: ['#16a34a', '#dc2626', '#dc2626', '#3b82f6'], borderRadius: 8 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { title: { display: true, text: 'Tasa por 100.000' }, min: 800, max: 950 } } } }); }
         function createChartCovidRelativo() { charts.covidRelativo = new Chart(document.getElementById('chartCovidRelativo'), { type: 'bar', data: { labels: covidData.periodos, datasets: [{ data: covidData.variaciones, backgroundColor: ['#64748b', '#dc2626', '#dc2626', '#3b82f6'], borderRadius: 8 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => `${ctx.parsed.y > 0 ? '+' : ''}${ctx.parsed.y.toFixed(1)}%` } } }, scales: { y: { title: { display: true, text: 'Variación %' }, min: -2, max: 7 } } } }); }
         function createChartCovidSexo() { charts.covidSexo = new Chart(document.getElementById('chartCovidSexo'), { type: 'line', data: { labels: ['2018', '2019', '2020', '2021', '2022', '2023'], datasets: [{ label: 'Hombres', data: [993.9, 1003.3, 1054.6, 1062.3, 1025.1, 955.5], borderColor: '#3b82f6', tension: 0.3 }, { label: 'Mujeres', data: [731.1, 741.7, 771.7, 774.7, 751.2, 703.4], borderColor: '#ec4899', tension: 0.3 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'top' } }, scales: { y: { title: { display: true, text: 'Tasa por 100.000' } } } } }); }
-        function createChartCorrelacion() {
-            charts.correlacion = new Chart(document.getElementById('chartCorrelacion'), { type: 'scatter', data: { datasets: [{ label: 'Hombres', data: scatterData.hombres, backgroundColor: 'rgba(59, 130, 246, 0.6)', borderColor: '#3b82f6', pointRadius: 8 }, { label: 'Mujeres', data: scatterData.mujeres, backgroundColor: 'rgba(236, 72, 153, 0.6)', borderColor: '#ec4899', pointRadius: 8 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'top' }, tooltip: { callbacks: { label: ctx => { const d = ctx.raw; return [`Año: ${d.año}`, `Mortalidad: ${d.x}`, `EV: ${d.y} años`]; } } } }, scales: { x: { title: { display: true, text: 'Tasa de Mortalidad' }, min: 650, max: 1150 }, y: { title: { display: true, text: 'Esperanza de Vida (años)' }, min: 17, max: 25 } } } });
+       function createChartCorrelacion() {
+    charts.correlacion = new Chart(document.getElementById('chartCorrelacion'), {
+        type: 'scatter',
+        data: {
+            datasets: [
+                { label: 'Hombres', data: [], backgroundColor: 'rgba(59, 130, 246, 0.6)', borderColor: '#3b82f6', pointRadius: 8 },
+                { label: 'Mujeres', data: [], backgroundColor: 'rgba(236, 72, 153, 0.6)', borderColor: '#ec4899', pointRadius: 8 }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { position: 'top' },
+                tooltip: {
+                    callbacks: {
+                        label: ctx => {
+                            const d = ctx.raw;
+                            return [`Año: ${d.año}`, `Mortalidad: ${d.x}`, `EV: ${d.y} años`];
+                        }
+                    }
+                }
+            },
+            scales: {
+                x: { title: { display: true, text: 'Tasa de Mortalidad' }, min: 650, max: 1150 },
+                y: { title: { display: true, text: 'Esperanza de Vida (años)' }, min: 17, max: 25 }
+            }
         }
-        function updateCorrelacionChart() {
-            const sexo = document.getElementById('selectCorrelacion').value;
-            charts.correlacion.data.datasets.forEach((ds, i) => {
-                if (sexo === 'todos') ds.hidden = false;
-                else if (sexo === 'hombres') ds.hidden = i !== 0;
-                else if (sexo === 'mujeres') ds.hidden = i !== 1;
-            });
-            charts.correlacion.update();
-        }
+    });
+    updateCorrelacionChart(); // Esto carga los datos iniciales
+}
+
+function updateCorrelacionChart() {
+    const sexo = document.getElementById('selectCorrelacion').value;
+    const año = document.getElementById('selectAnoCorrelacion').value;
+    const provincia = document.getElementById('selectProvCorrelacion').value;
+
+    // Función interna para filtrar
+    const filtrar = (lista) => lista.filter(d => {
+        const matchAño = (año === 'todos') || (d.año === parseInt(año));
+        const matchProv = (provincia === 'todas') || (d.prov === provincia);
+        return matchAño && matchProv;
+    });
+
+    const datosH = (sexo === 'todos' || sexo === 'hombres') ? filtrar(scatterData.hombres) : [];
+    const datosM = (sexo === 'todos' || sexo === 'mujeres') ? filtrar(scatterData.mujeres) : [];
+
+    charts.correlacion.data.datasets[0].data = datosH;
+    charts.correlacion.data.datasets[1].data = datosM;
+    
+    // Ocultar el dataset si no hay datos para que no ensucie la leyenda
+    charts.correlacion.data.datasets[0].hidden = datosH.length === 0;
+    charts.correlacion.data.datasets[1].hidden = datosM.length === 0;
+
+    charts.correlacion.update();
+}
         
         document.addEventListener('DOMContentLoaded', function() {
             createChartResumen(); createChartTemporal(); createChartCausas(); createChartTendenciaCausas();
