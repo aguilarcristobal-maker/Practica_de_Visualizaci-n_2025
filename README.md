@@ -103,11 +103,24 @@ Abrir `dashboard/index.html` en un navegador o acceder al enlace publicado.
 
 ##  Visualizaciones
 
-### Figura 1: Evolución Temporal
+### Vista rápida
 ![Evolución Mortalidad](figuras/fig1_evolucion_mortalidad_general.png)
 
-### Figura 13: Dashboard Resumen
+![Heatmap departamentos](figuras/fig8_heatmap_departamentos.png)
+
 ![Dashboard](figuras/fig13_dashboard_resumen.png)
+
+### Galería completa (enlaces)
+- [Figura 2 – Jerarquía de causas](figuras/fig2_jerarquia_causas_mortalidad.png)
+- [Figura 3 – Evolución causas específicas](figuras/fig3_evolucion_causas_especificas.png)
+- [Figura 4 – Disparidad por género](figuras/fig4_disparidad_genero_ratio.png)
+- [Figura 5 – Comparativa sexo-causa](figuras/fig5_comparativa_sexo_causa.png)
+- [Figura 6 – Esperanza de vida por género](figuras/fig6_esperanza_vida_genero.png)
+- [Figura 7 – Ranking departamentos](figuras/fig7_ranking_departamentos.png)
+- [Figura 9 – Tendencia suicidio](figuras/fig9_tendencia_suicidio.png)
+- [Figura 10 – Correlación](figuras/fig10_scatter_correlacion.png)
+- [Figura 11 – Comparativa provincias](figuras/fig11_comparativa_provincias.png)
+- [Figura 12 – Impacto COVID](figuras/fig12_impacto_covid.png)
 
 ---
 
