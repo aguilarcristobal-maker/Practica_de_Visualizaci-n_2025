@@ -8,7 +8,7 @@ Autor: Cristóbal Eduardo Aguilar Gallardo
 Fecha: Enero 2026
 Descripción: Análisis y visualización de datos epidemiológicos de la CV
 
-Este script genera todas las figuras de la parte II de la Practica de visualización.
+Este script genera todas las figuras de la segunda parte de la practica de visualización.
 Dataset: Portal Estadístico de la Generalitat Valenciana
 
 ================================================================================
@@ -511,7 +511,7 @@ def fig7_ranking_departamentos(df, output_dir=OUTPUT_DIR):
     
     ranking = df[(df['causa_mortalidad'] == 'General') & 
                  (df['sexo'] == 'Ambos sexos') &
-                 (df['nivel_geografico'] == 'HOSPITAL/ZONA SALUD')].groupby(
+                 (df['nivel_geografico'] == 'DEPARTAMENTO')].groupby(
         ['ubicacion', 'provincia']
     ).agg({'tasa_mortalidad': 'mean'}).reset_index().sort_values('tasa_mortalidad', ascending=True)
     
@@ -575,12 +575,12 @@ def fig8_heatmap_departamentos(df, output_dir=OUTPUT_DIR):
     print("="*60)
     
     heatmap_data = df[(df['causa_mortalidad'] == 'General') & 
-                      (df['sexo'] == 'Ambos sexos') &
-                      (df['nivel_geografico'] == 'HOSPITAL/ZONA SALUD')].pivot_table(
-        index='ubicacion',
-        columns='periodo',
-        values='tasa_mortalidad'
-    )
+                  (df['sexo'] == 'Ambos sexos') &
+                  (df['nivel_geografico'] == 'DEPARTAMENTO')].pivot_table(
+    index='ubicacion',
+    columns='periodo',
+    values='tasa_mortalidad'
+)
     
     heatmap_data['promedio'] = heatmap_data.mean(axis=1)
     heatmap_data = heatmap_data.sort_values('promedio', ascending=False)
@@ -703,46 +703,92 @@ def fig10_scatter_correlacion(df, output_dir=OUTPUT_DIR):
     print("\n" + "="*60)
     print("FIGURA 10: Scatter - Correlación Mortalidad vs Esperanza de Vida")
     print("="*60)
-    
-    scatter_data = df[(df['causa_mortalidad'] == 'General') & 
-                      (df['nivel_geografico'] == 'HOSPITAL/ZONA SALUD')]
-    
+
+    # Filtro correcto según el dataset
+    scatter_data = df[
+        (df['causa_mortalidad'] == 'General') &
+        (df['nivel_geografico'] == 'DEPARTAMENTO')
+    ]
+
     fig, ax = plt.subplots(figsize=(12, 8))
-    
-    for sexo, color, marker, alpha in [('Hombres', COLORS['hombre'], 's', 0.6), 
-                                        ('Mujeres', COLORS['mujer'], '^', 0.6)]:
+
+    # Scatter por sexo
+    for sexo, color, marker, alpha in [
+        ('Hombres', COLORS['hombre'], 's', 0.6),
+        ('Mujeres', COLORS['mujer'], '^', 0.6)
+    ]:
         data = scatter_data[scatter_data['sexo'] == sexo]
-        ax.scatter(data['tasa_mortalidad'], data['esperanza_vida'], 
-                   c=color, marker=marker, s=50, alpha=alpha, label=sexo, edgecolors='white')
-    
-    # Regresión
-    x = scatter_data['tasa_mortalidad']
-    y = scatter_data['esperanza_vida']
+        ax.scatter(
+            data['tasa_mortalidad'],
+            data['esperanza_vida'],
+            c=color,
+            marker=marker,
+            s=50,
+            alpha=alpha,
+            label=sexo,
+            edgecolors='white'
+        )
+
+    # Datos válidos para correlación y regresión
+    datos = scatter_data[['tasa_mortalidad', 'esperanza_vida']].dropna()
+
+    if len(datos) < 2:
+        print(f"⚠️ FIG10: no hay suficientes pares para correlación/regresión (n={len(datos)}).")
+        plt.close()
+        return None
+
+    x = datos['tasa_mortalidad'].values
+    y = datos['esperanza_vida'].values
+
+    # Regresión lineal
     slope, intercept, r_value, p_value, std_err = stats.linregress(x, y)
-    
     x_line = np.linspace(x.min(), x.max(), 100)
     y_line = slope * x_line + intercept
-    ax.plot(x_line, y_line, 'k--', linewidth=2, alpha=0.7, label='Regresión lineal')
-    
+    ax.plot(
+        x_line,
+        y_line,
+        'k--',
+        linewidth=2,
+        alpha=0.7,
+        label='Regresión lineal'
+    )
+
+    # Correlación de Pearson
     corr, pval = stats.pearsonr(x, y)
-    ax.text(0.98, 0.55, f'Correlación de Pearson\nr = {corr:.3f}\np < 0.001',
-            transform=ax.transAxes, fontsize=11, va='center', ha='right',
-            bbox=dict(boxstyle='round', facecolor='#f7fafc', edgecolor='#e2e8f0'))
-    
+    ax.text(
+        0.98,
+        0.55,
+        f'Correlación de Pearson\nr = {corr:.3f}\np = {pval:.3g}',
+        transform=ax.transAxes,
+        fontsize=11,
+        va='center',
+        ha='right',
+        bbox=dict(
+            boxstyle='round',
+            facecolor='#f7fafc',
+            edgecolor='#e2e8f0'
+        )
+    )
+
+    # Estética
     ax.set_xlabel('Tasa de Mortalidad General (por 100.000 hab.)', fontweight='bold')
     ax.set_ylabel('Esperanza de Vida a los 65 años (años)', fontweight='bold')
-    ax.set_title('Relación entre Mortalidad y Esperanza de Vida\n'
-                 'Datos por Departamento, Año y Sexo (2010-2023)', 
-                 fontsize=13, fontweight='bold', pad=20)
+    ax.set_title(
+        'Relación entre Mortalidad y Esperanza de Vida\n'
+        'Datos por Departamento, Año y Sexo (2010-2023)',
+        fontsize=13,
+        fontweight='bold',
+        pad=20
+    )
     ax.legend(loc='upper right', frameon=True, fancybox=True)
     ax.yaxis.grid(True, linestyle='--', alpha=0.3)
     ax.xaxis.grid(True, linestyle='--', alpha=0.3)
-    
+
     plt.tight_layout()
     filepath = os.path.join(output_dir, 'fig10_scatter_correlacion.png')
     plt.savefig(filepath, dpi=300, bbox_inches='tight', facecolor='white', edgecolor='none')
     plt.close()
-    
+
     print(f"✅ Guardada: {filepath}")
     return filepath
 
@@ -894,7 +940,7 @@ def fig13_dashboard_resumen(df, output_dir=OUTPUT_DIR):
     
     VALORES CORRECTOS (coinciden con dashboard HTML oficial):
     - Mortalidad 2023: 819.88 (-10.0% vs 2010)
-    - Esperanza vida: 20.6 años (2022) - último dato oficial Conselleria
+    - Esperanza vida: 20.7 años (2022) - último dato oficial Conselleria
     - Brecha género: 3.8 años
     - Exceso COVID: +3.2% (2021 vs promedio histórico 2010-2019)
     - Tendencia suicidio: +11.2%
@@ -922,7 +968,7 @@ def fig13_dashboard_resumen(df, output_dir=OUTPUT_DIR):
     
     # --- KPI 2: Esperanza de vida (2022 = último dato oficial Conselleria) ---
     # NOTA: Usar 20.6 que es el valor oficial del archivo de Conselleria
-    ev_dashboard = 20.6
+    ev_dashboard = 20.7
     
     print(f"✓ KPI2 - Esperanza vida (2022): {ev_dashboard:.1f} años")
     
@@ -1173,4 +1219,4 @@ def generar_todas_las_figuras(filepath_datos='data/mortalidad_esperanza_vida_opc
 if __name__ == '__main__':
     # Ejecutar generación de figuras
     # NOTA: Asegúrate de que el archivo CSV esté en la ruta correcta
-    generar_todas_las_figuras('data/mortalidad_esperanza_vida_opcion_c_v4_final.csv')
+    generar_todas_las_figuras('/content/mortalidad_esperanza_vida_cv_consolidado.csv')
