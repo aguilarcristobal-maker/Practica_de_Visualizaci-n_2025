@@ -5,17 +5,19 @@
 PROYECTO: Mortalidad y Esperanza de Vida - Comunitat Valenciana 2010-2023
 ================================================================================
 Autor: Cristóbal Eduardo Aguilar Gallardo
-Fecha: Enero 2025
+Fecha: Enero 2026
 Descripción: Análisis y visualización de datos epidemiológicos de la CV
 
 Este script genera todas las figuras del proyecto de visualización.
 Dataset: Portal Estadístico de la Generalitat Valenciana
+
 ================================================================================
 """
 
 import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
+import matplotlib.gridspec as gridspec
 import seaborn as sns
 import numpy as np
 from scipy import stats
@@ -70,14 +72,14 @@ COLORS = {
 # CARGA DE DATOS
 # ============================================================================
 
-def cargar_datos(filepath='data/mortalidad_esperanza_vida_cv.csv'):
+def cargar_datos(filepath='data/mortalidad_esperanza_vida_opcion_c_v4_final.csv'):
     """
     Carga el dataset principal.
     
     Parameters:
     -----------
     filepath : str
-        Ruta al archivo CSV
+        Ruta al archivo CSV (separador ;)
     
     Returns:
     --------
@@ -121,15 +123,20 @@ def fig1_evolucion_mortalidad_general(df, output_dir=OUTPUT_DIR):
                 color=color, linewidth=2.5, marker=marker, markersize=8, 
                 label=sexo, markeredgecolor='white', markeredgewidth=1.5)
     
+    # Obtener valores para anotaciones
+    cv_ambos = cv_general[cv_general['sexo'] == 'Ambos sexos'].sort_values('periodo')
+    mort_2023 = cv_ambos[cv_ambos['periodo'] == 2023]['tasa_mortalidad'].values[0]
+    mort_2021 = cv_ambos[cv_ambos['periodo'] == 2021]['tasa_mortalidad'].values[0]
+    
     # Anotaciones
-    ax.annotate('Mínimo histórico\n819.9', 
-                xy=(2023, 819.88), xytext=(2022, 780),
+    ax.annotate(f'Mínimo histórico\n{mort_2023:.1f}', 
+                xy=(2023, mort_2023), xytext=(2022, mort_2023 - 40),
                 fontsize=10, ha='center',
                 arrowprops=dict(arrowstyle='->', color=COLORS['success'], lw=1.5),
                 color=COLORS['success'], fontweight='bold')
     
-    ax.annotate('Pico COVID\n907.8', 
-                xy=(2021, 907.83), xytext=(2021.5, 950),
+    ax.annotate(f'Pico COVID\n{mort_2021:.1f}', 
+                xy=(2021, mort_2021), xytext=(2021.5, mort_2021 + 40),
                 fontsize=10, ha='center',
                 arrowprops=dict(arrowstyle='->', color=COLORS['danger'], lw=1.5),
                 color=COLORS['danger'], fontweight='bold')
@@ -878,97 +885,187 @@ def fig12_impacto_covid(df, output_dir=OUTPUT_DIR):
     return filepath
 
 # ============================================================================
-# FIGURA 13: DASHBOARD RESUMEN
+# FIGURA 13: DASHBOARD RESUMEN 
 # ============================================================================
 
 def fig13_dashboard_resumen(df, output_dir=OUTPUT_DIR):
     """
-    Genera dashboard resumen con KPIs y mini-gráficos.
+    Genera dashboard resumen con KPIs calculados dinámicamente.
+    
+    VALORES CORRECTOS (coinciden con dashboard HTML oficial):
+    - Mortalidad 2023: 819.88 (-10.0% vs 2010)
+    - Esperanza vida: 20.6 años (2022) - último dato oficial Conselleria
+    - Brecha género: 3.8 años
+    - Exceso COVID: +3.2% (2021 vs promedio histórico 2010-2019)
+    - Tendencia suicidio: +11.2%
+    - Disparidad territorial: 24.5%
     """
     print("\n" + "="*60)
     print("FIGURA 13: Dashboard Resumen")
     print("="*60)
     
-    import matplotlib.gridspec as gridspec
+    # =========================================================================
+    # CALCULAR TODOS LOS VALORES DINÁMICAMENTE
+    # =========================================================================
+    
+    # --- Filtro base ---
+    cv_general_ambos = df[(df['ubicacion'] == 'Comunitat Valenciana') & 
+                          (df['causa_mortalidad'] == 'General') &
+                          (df['sexo'] == 'Ambos sexos')].sort_values('periodo')
+    
+    # --- KPI 1: Mortalidad 2023 y cambio vs 2010 ---
+    mort_2023 = cv_general_ambos[cv_general_ambos['periodo'] == 2023]['tasa_mortalidad'].values[0]
+    mort_2010 = cv_general_ambos[cv_general_ambos['periodo'] == 2010]['tasa_mortalidad'].values[0]
+    cambio_mort = ((mort_2023 - mort_2010) / mort_2010) * 100
+    
+    print(f"✓ KPI1 - Mortalidad 2023: {mort_2023:.2f} (cambio: {cambio_mort:.1f}%)")
+    
+    # --- KPI 2: Esperanza de vida (2022 = último dato oficial Conselleria) ---
+    # NOTA: Usar 20.6 que es el valor oficial del archivo de Conselleria
+    ev_dashboard = 20.6
+    
+    print(f"✓ KPI2 - Esperanza vida (2022): {ev_dashboard:.1f} años")
+    
+    # --- KPI 3: Brecha de género (2022) ---
+    cv_gen_2022 = df[(df['ubicacion'] == 'Comunitat Valenciana') & 
+                     (df['causa_mortalidad'] == 'General') &
+                     (df['periodo'] == 2022)]
+    ev_h_2022 = cv_gen_2022[cv_gen_2022['sexo'] == 'Hombres']['esperanza_vida'].values[0]
+    ev_m_2022 = cv_gen_2022[cv_gen_2022['sexo'] == 'Mujeres']['esperanza_vida'].values[0]
+    brecha_genero = ev_m_2022 - ev_h_2022
+    
+    print(f"✓ KPI3 - Brecha género: {brecha_genero:.1f} años")
+    
+    # --- Exceso COVID: 2021 vs promedio histórico 2010-2019 ---
+    promedio_historico = cv_general_ambos[cv_general_ambos['periodo'] <= 2019]['tasa_mortalidad'].mean()
+    covid_2021 = cv_general_ambos[cv_general_ambos['periodo'] == 2021]['tasa_mortalidad'].values[0]
+    exceso_covid = ((covid_2021 - promedio_historico) / promedio_historico) * 100
+    
+    print(f"✓ Exceso COVID: +{exceso_covid:.1f}%")
+    
+    # --- Impacto COVID para gráfico de barras ---
+    pre_covid = cv_general_ambos[cv_general_ambos['periodo'].isin([2018, 2019])]['tasa_mortalidad'].mean()
+    covid_2020 = cv_general_ambos[cv_general_ambos['periodo'] == 2020]['tasa_mortalidad'].values[0]
+    post_covid = cv_general_ambos[cv_general_ambos['periodo'].isin([2022, 2023])]['tasa_mortalidad'].mean()
+    
+    # --- Ratios H/M por causa ---
+    causas_ratio = ['Suicidio', 'Cardio', 'Cancer', 'General', 'Cerebro']
+    ratios_calculados = []
+    
+    for causa in causas_ratio:
+        h = df[(df['ubicacion'] == 'Comunitat Valenciana') & 
+               (df['causa_mortalidad'] == causa) & 
+               (df['sexo'] == 'Hombres')]['tasa_mortalidad'].mean()
+        m = df[(df['ubicacion'] == 'Comunitat Valenciana') & 
+               (df['causa_mortalidad'] == causa) & 
+               (df['sexo'] == 'Mujeres')]['tasa_mortalidad'].mean()
+        ratios_calculados.append(h/m)
+    
+    print(f"✓ Ratios H/M: {[f'{r:.2f}' for r in ratios_calculados]}")
+    
+    # --- Extremos por departamento ---
+    ranking = df[(df['causa_mortalidad'] == 'General') & 
+                 (df['sexo'] == 'Ambos sexos') &
+                 (df['nivel_geografico'] == 'HOSPITAL/ZONA SALUD')].groupby('ubicacion')['tasa_mortalidad'].mean()
+    
+    top3 = ranking.nlargest(3)
+    bottom3 = ranking.nsmallest(3)
+    disparidad = ((ranking.max() - ranking.min()) / ranking.min()) * 100
+    
+    print(f"✓ Disparidad territorial: {disparidad:.1f}%")
+    
+    # --- Suicidio ---
+    suicidio = df[(df['ubicacion'] == 'Comunitat Valenciana') & 
+                  (df['causa_mortalidad'] == 'Suicidio') &
+                  (df['sexo'] == 'Ambos sexos')].sort_values('periodo')
+    
+    suic_2010 = suicidio[suicidio['periodo'] == 2010]['tasa_mortalidad'].values[0]
+    suic_2023 = suicidio[suicidio['periodo'] == 2023]['tasa_mortalidad'].values[0]
+    cambio_suic = ((suic_2023 - suic_2010) / suic_2010) * 100
+    
+    print(f"✓ Tendencia suicidio: +{cambio_suic:.1f}%")
+    
+    # =========================================================================
+    # GENERAR FIGURA
+    # =========================================================================
     
     fig = plt.figure(figsize=(16, 12))
     gs = gridspec.GridSpec(3, 3, figure=fig, hspace=0.4, wspace=0.3)
     
-    # KPI 1
+    # --- KPI 1: Mortalidad 2023 ---
     ax1 = fig.add_subplot(gs[0, 0])
-    ax1.text(0.5, 0.7, '819.9', fontsize=42, fontweight='bold', ha='center', va='center', 
-             color=COLORS['primary'], transform=ax1.transAxes)
-    ax1.text(0.5, 0.35, 'Mortalidad General 2023', fontsize=12, ha='center', va='center',
-             color='#4a5568', transform=ax1.transAxes)
-    ax1.text(0.5, 0.15, '↓ -4.3% vs 2010', fontsize=11, ha='center', va='center',
-             color=COLORS['success'], fontweight='bold', transform=ax1.transAxes)
+    ax1.text(0.5, 0.7, f'{mort_2023:.2f}', fontsize=38, fontweight='bold', 
+             ha='center', va='center', color=COLORS['primary'], transform=ax1.transAxes)
+    ax1.text(0.5, 0.35, 'Mortalidad General 2023', fontsize=12, ha='center', 
+             va='center', color='#4a5568', transform=ax1.transAxes)
+    ax1.text(0.5, 0.15, f'↓ {cambio_mort:.1f}% vs 2010', fontsize=11, ha='center', 
+             va='center', color=COLORS['success'], fontweight='bold', transform=ax1.transAxes)
     ax1.axis('off')
     ax1.set_facecolor('#f7fafc')
     
-    # KPI 2
+    # --- KPI 2: Esperanza de vida (2022) ---
     ax2 = fig.add_subplot(gs[0, 1])
-    ax2.text(0.5, 0.7, '21.5', fontsize=42, fontweight='bold', ha='center', va='center', 
-             color=COLORS['primary'], transform=ax2.transAxes)
-    ax2.text(0.5, 0.35, 'Esperanza de Vida (65 años)', fontsize=12, ha='center', va='center',
-             color='#4a5568', transform=ax2.transAxes)
-    ax2.text(0.5, 0.15, '↑ +0.9 años vs 2010', fontsize=11, ha='center', va='center',
-             color=COLORS['success'], fontweight='bold', transform=ax2.transAxes)
+    ax2.text(0.5, 0.7, f'{ev_dashboard:.1f}', fontsize=42, fontweight='bold', 
+             ha='center', va='center', color=COLORS['primary'], transform=ax2.transAxes)
+    ax2.text(0.5, 0.35, 'Esperanza de Vida (65 años)', fontsize=12, ha='center', 
+             va='center', color='#4a5568', transform=ax2.transAxes)
+    ax2.text(0.5, 0.15, 'años (2022)', fontsize=11, ha='center', 
+             va='center', color='#718096', fontweight='bold', transform=ax2.transAxes)
     ax2.axis('off')
     ax2.set_facecolor('#f7fafc')
     
-    # KPI 3
+    # --- KPI 3: Brecha de género ---
     ax3 = fig.add_subplot(gs[0, 2])
-    ax3.text(0.5, 0.7, '3.8', fontsize=42, fontweight='bold', ha='center', va='center', 
-             color=COLORS['mujer'], transform=ax3.transAxes)
-    ax3.text(0.5, 0.35, 'Brecha de Género (años)', fontsize=12, ha='center', va='center',
-             color='#4a5568', transform=ax3.transAxes)
-    ax3.text(0.5, 0.15, 'Mujeres viven más', fontsize=11, ha='center', va='center',
-             color=COLORS['mujer'], fontweight='bold', transform=ax3.transAxes)
+    ax3.text(0.5, 0.7, f'{brecha_genero:.1f}', fontsize=42, fontweight='bold', 
+             ha='center', va='center', color=COLORS['mujer'], transform=ax3.transAxes)
+    ax3.text(0.5, 0.35, 'Brecha de Género (años)', fontsize=12, ha='center', 
+             va='center', color='#4a5568', transform=ax3.transAxes)
+    ax3.text(0.5, 0.15, 'Mujeres viven más', fontsize=11, ha='center', 
+             va='center', color=COLORS['mujer'], fontweight='bold', transform=ax3.transAxes)
     ax3.axis('off')
     ax3.set_facecolor('#f7fafc')
     
-    # Gráfico evolución temporal
+    # --- Gráfico evolución temporal ---
     ax4 = fig.add_subplot(gs[1, :2])
-    cv_data = df[(df['ubicacion'] == 'Comunitat Valenciana') & 
-                 (df['causa_mortalidad'] == 'General') &
-                 (df['sexo'] == 'Ambos sexos')].sort_values('periodo')
-    ax4.axvspan(2019.5, 2021.5, alpha=0.2, color='#fed7d7')
-    ax4.plot(cv_data['periodo'], cv_data['tasa_mortalidad'], 
-             color=COLORS['primary'], linewidth=2.5, marker='o', markersize=6)
-    ax4.fill_between(cv_data['periodo'], cv_data['tasa_mortalidad'], alpha=0.1, color=COLORS['primary'])
+    ax4.axvspan(2019.5, 2021.5, alpha=0.2, color='#fed7d7', label='Período COVID-19')
+    ax4.plot(cv_general_ambos['periodo'], cv_general_ambos['tasa_mortalidad'], 
+             color=COLORS['primary'], linewidth=2.5, marker='o', markersize=6,
+             markeredgecolor='white', markeredgewidth=1)
+    ax4.fill_between(cv_general_ambos['periodo'], cv_general_ambos['tasa_mortalidad'], 
+                     alpha=0.1, color=COLORS['primary'])
     ax4.set_title('Evolución de la Mortalidad General (2010-2023)', fontweight='bold', fontsize=11)
     ax4.set_xlabel('Año')
     ax4.set_ylabel('Tasa por 100.000')
     ax4.set_xticks(range(2010, 2024, 2))
     ax4.spines['top'].set_visible(False)
     ax4.spines['right'].set_visible(False)
+    ax4.yaxis.grid(True, linestyle='--', alpha=0.3)
     
-    # Ratio por sexo
+    # --- Ratio H/M por causa ---
     ax5 = fig.add_subplot(gs[1, 2])
-    causas = ['Suicidio', 'Cardio', 'Cancer', 'General', 'Cerebro']
-    ratios = [3.11, 2.29, 2.08, 1.58, 1.22]
-    colors = plt.cm.Reds(np.linspace(0.3, 0.8, len(ratios)))
-    bars = ax5.barh(causas, ratios, color=colors, edgecolor='white')
-    ax5.axvline(x=1, color='black', linestyle='--', alpha=0.5)
+    orden = np.argsort(ratios_calculados)[::-1]
+    causas_ord = [causas_ratio[i] for i in orden]
+    ratios_ord = [ratios_calculados[i] for i in orden]
+    
+    colors_ratio = plt.cm.Reds(np.linspace(0.3, 0.8, len(ratios_ord)))
+    bars5 = ax5.barh(causas_ord, ratios_ord, color=colors_ratio, edgecolor='white', height=0.6)
+    ax5.axvline(x=1, color='black', linestyle='--', alpha=0.5, linewidth=1.5)
     ax5.set_title('Ratio Mortalidad H/M', fontweight='bold', fontsize=11)
     ax5.set_xlabel('Ratio')
+    ax5.set_xlim(0, max(ratios_ord) * 1.15)
     ax5.spines['top'].set_visible(False)
     ax5.spines['right'].set_visible(False)
-    for bar, ratio in zip(bars, ratios):
+    for bar, ratio in zip(bars5, ratios_ord):
         ax5.text(ratio + 0.05, bar.get_y() + bar.get_height()/2, f'{ratio:.2f}x', 
                  va='center', fontsize=9, fontweight='bold')
     
-    # Top/Bottom departamentos
+    # --- Extremos por departamento ---
     ax6 = fig.add_subplot(gs[2, 0])
-    ranking = df[(df['causa_mortalidad'] == 'General') & 
-                 (df['sexo'] == 'Ambos sexos') &
-                 (df['nivel_geografico'] == 'HOSPITAL/ZONA SALUD')].groupby('ubicacion')['tasa_mortalidad'].mean()
-    top3 = ranking.nlargest(3)
-    bottom3 = ranking.nsmallest(3)
     depts = list(bottom3.index) + ['...'] + list(top3.index[::-1])
     vals = list(bottom3.values) + [0] + list(top3.values[::-1])
     colors_dept = [COLORS['success']]*3 + ['white'] + [COLORS['danger']]*3
-    bars = ax6.barh(range(len(depts)), vals, color=colors_dept)
+    
+    bars6 = ax6.barh(range(len(depts)), vals, color=colors_dept, edgecolor='white', height=0.7)
     ax6.set_yticks(range(len(depts)))
     ax6.set_yticklabels(depts, fontsize=8)
     ax6.set_title('Extremos por Departamento', fontweight='bold', fontsize=11)
@@ -976,54 +1073,68 @@ def fig13_dashboard_resumen(df, output_dir=OUTPUT_DIR):
     ax6.spines['top'].set_visible(False)
     ax6.spines['right'].set_visible(False)
     
-    # Impacto COVID
+    for i, (bar, val) in enumerate(zip(bars6, vals)):
+        if val > 0:
+            ax6.text(val + 10, bar.get_y() + bar.get_height()/2, f'{val:.0f}', 
+                     va='center', fontsize=8, fontweight='bold')
+    
+    # --- Impacto COVID ---
     ax7 = fig.add_subplot(gs[2, 1])
-    periodos = ['Pre-COVID', '2020', '2021', 'Post-COVID']
-    valores = [857.1, 902.6, 907.8, 856.8]
-    colores = [COLORS['success'], COLORS['danger'], COLORS['danger'], COLORS['primary']]
-    bars = ax7.bar(periodos, valores, color=colores, edgecolor='white')
-    ax7.axhline(y=857.1, color=COLORS['success'], linestyle='--', alpha=0.7)
+    periodos_covid = ['Pre-COVID\n(2018-19)', '2020', '2021', 'Post-COVID\n(2022-23)']
+    valores_covid = [pre_covid, covid_2020, covid_2021, post_covid]
+    colores_covid = [COLORS['success'], COLORS['danger'], COLORS['danger'], COLORS['primary']]
+    
+    bars7 = ax7.bar(periodos_covid, valores_covid, color=colores_covid, edgecolor='white', width=0.6)
+    ax7.axhline(y=pre_covid, color=COLORS['success'], linestyle='--', alpha=0.7, linewidth=1.5)
     ax7.set_title('Impacto COVID-19', fontweight='bold', fontsize=11)
     ax7.set_ylabel('Tasa Mortalidad')
     ax7.spines['top'].set_visible(False)
     ax7.spines['right'].set_visible(False)
-    for bar, val in zip(bars, valores):
-        ax7.text(bar.get_x() + bar.get_width()/2, bar.get_height() + 5, 
+    ax7.set_ylim(0, max(valores_covid) * 1.15)
+    
+    for bar, val in zip(bars7, valores_covid):
+        ax7.text(bar.get_x() + bar.get_width()/2, bar.get_height() + 8, 
                  f'{val:.0f}', ha='center', fontsize=9, fontweight='bold')
     
-    # Tendencia suicidio
+    # --- Tendencia Suicidio ---
     ax8 = fig.add_subplot(gs[2, 2])
-    suicidio = df[(df['ubicacion'] == 'Comunitat Valenciana') & 
-                  (df['causa_mortalidad'] == 'Suicidio') &
-                  (df['sexo'] == 'Ambos sexos')].sort_values('periodo')
     ax8.plot(suicidio['periodo'], suicidio['tasa_mortalidad'], 
-             color='#6b46c1', linewidth=2.5, marker='o', markersize=5)
+             color='#6b46c1', linewidth=2.5, marker='o', markersize=5,
+             markeredgecolor='white', markeredgewidth=1)
     ax8.fill_between(suicidio['periodo'], suicidio['tasa_mortalidad'], alpha=0.2, color='#6b46c1')
-    ax8.set_title('Tendencia Suicidio (+11.2%)', fontweight='bold', fontsize=11)
+    ax8.set_title(f'Tendencia Suicidio (+{cambio_suic:.1f}%)', fontweight='bold', fontsize=11)
     ax8.set_xlabel('Año')
     ax8.set_ylabel('Tasa por 100.000')
     ax8.set_xticks(range(2010, 2024, 4))
     ax8.spines['top'].set_visible(False)
     ax8.spines['right'].set_visible(False)
+    ax8.yaxis.grid(True, linestyle='--', alpha=0.3)
     
+    # --- Título general ---
     fig.suptitle('MORTALIDAD Y ESPERANZA DE VIDA - COMUNITAT VALENCIANA 2010-2023\n'
                  'Dashboard Resumen de Indicadores Epidemiológicos', 
                  fontsize=16, fontweight='bold', y=0.98)
     
+    # --- Guardar ---
     filepath = os.path.join(output_dir, 'fig13_dashboard_resumen.png')
     plt.savefig(filepath, dpi=300, bbox_inches='tight', facecolor='white', edgecolor='none')
     plt.close()
     
-    print(f"✅ Guardada: {filepath}")
+    print(f"\n✅ Guardada: {filepath}")
     return filepath
 
 # ============================================================================
 # FUNCIÓN PRINCIPAL
 # ============================================================================
 
-def generar_todas_las_figuras(filepath_datos='data/mortalidad_esperanza_vida_cv.csv'):
+def generar_todas_las_figuras(filepath_datos='data/mortalidad_esperanza_vida_opcion_c_v4_final.csv'):
     """
     Genera todas las figuras del proyecto.
+    
+    Parameters:
+    -----------
+    filepath_datos : str
+        Ruta al archivo CSV del dataset (separador ;)
     """
     print("\n" + "="*80)
     print("GENERACIÓN DE TODAS LAS FIGURAS")
@@ -1061,4 +1172,5 @@ def generar_todas_las_figuras(filepath_datos='data/mortalidad_esperanza_vida_cv.
 
 if __name__ == '__main__':
     # Ejecutar generación de figuras
-    generar_todas_las_figuras()
+    # NOTA: Asegúrate de que el archivo CSV esté en la ruta correcta
+    generar_todas_las_figuras('data/mortalidad_esperanza_vida_opcion_c_v4_final.csv')
